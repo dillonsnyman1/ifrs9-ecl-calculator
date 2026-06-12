@@ -65,3 +65,15 @@ export const DISCOUNT_METHOD_LABELS: Record<DiscountMethod, string> = {
   midpoint: "Midpoint of horizon",
   end_of_horizon: "End of horizon",
 };
+
+export interface StagingAssumptions {
+  sicr_pd_multiple: number;
+  stage_2_dpd_threshold: number;
+  stage_3_dpd_threshold: number;
+}
+
+export const DEFAULT_STAGING_ASSUMPTIONS: StagingAssumptions = {
+  sicr_pd_multiple: 2.0,
+  stage_2_dpd_threshold: 30,
+  stage_3_dpd_threshold: 90,
+};

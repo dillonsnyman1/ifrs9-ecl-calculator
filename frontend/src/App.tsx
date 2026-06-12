@@ -5,30 +5,38 @@ import { fetchSamplePortfolio, uploadPortfolio } from "./api/client";
 import { EclByStageChart } from "./components/EclByStageChart";
 import { LoanTable } from "./components/LoanTable";
 import { StageBreakdownChart } from "./components/StageBreakdownChart";
+import { StagingControls } from "./components/StagingControls";
 import { SummaryCards } from "./components/SummaryCards";
 import { UploadPortfolio } from "./components/UploadPortfolio";
-import { DISCOUNT_METHOD_LABELS, type DiscountMethod, type PortfolioResponse } from "./types/portfolio";
+import {
+  DEFAULT_STAGING_ASSUMPTIONS,
+  DISCOUNT_METHOD_LABELS,
+  type DiscountMethod,
+  type PortfolioResponse,
+  type StagingAssumptions,
+} from "./types/portfolio";
 
 function App() {
   const [portfolio, setPortfolio] = useState<PortfolioResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [discountMethod, setDiscountMethod] = useState<DiscountMethod>("midpoint");
+  const [staging, setStaging] = useState<StagingAssumptions>(DEFAULT_STAGING_ASSUMPTIONS);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
-  function loadSample(method: DiscountMethod) {
+  function loadSample(method: DiscountMethod, staging: StagingAssumptions) {
     setLoading(true);
     setError(null);
-    fetchSamplePortfolio(method)
+    fetchSamplePortfolio(method, staging)
       .then(setPortfolio)
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load portfolio."))
       .finally(() => setLoading(false));
   }
 
-  function reloadUploadedFile(file: File, method: DiscountMethod) {
+  function reloadUploadedFile(file: File, method: DiscountMethod, staging: StagingAssumptions) {
     setLoading(true);
     setError(null);
-    uploadPortfolio(file, method)
+    uploadPortfolio(file, method, staging)
       .then(setPortfolio)
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load portfolio."))
       .finally(() => setLoading(false));
@@ -36,7 +44,7 @@ function App() {
 
   function handleUseSample() {
     setUploadedFile(null);
-    loadSample(discountMethod);
+    loadSample(discountMethod, staging);
   }
 
   function handleUploaded(data: PortfolioResponse, file: File) {
@@ -47,20 +55,29 @@ function App() {
   function handleDiscountMethodChange(method: DiscountMethod) {
     setDiscountMethod(method);
     if (uploadedFile) {
-      reloadUploadedFile(uploadedFile, method);
+      reloadUploadedFile(uploadedFile, method, staging);
     } else {
-      loadSample(method);
+      loadSample(method, staging);
+    }
+  }
+
+  function handleStagingChange(nextStaging: StagingAssumptions) {
+    setStaging(nextStaging);
+    if (uploadedFile) {
+      reloadUploadedFile(uploadedFile, discountMethod, nextStaging);
+    } else {
+      loadSample(discountMethod, nextStaging);
     }
   }
 
   useEffect(() => {
     // loading and error are already at their initial values on mount, so just
     // kick off the fetch directly rather than going through loadSample
-    fetchSamplePortfolio(discountMethod)
+    fetchSamplePortfolio(discountMethod, staging)
       .then(setPortfolio)
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load portfolio."))
       .finally(() => setLoading(false));
-    // only run once on mount, discount method changes are handled separately
+    // only run once on mount, discount method and staging changes are handled separately
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -76,7 +93,12 @@ function App() {
       </header>
 
       <div className="toolbar">
-        <UploadPortfolio discountMethod={discountMethod} onUploaded={handleUploaded} onUseSample={handleUseSample} />
+        <UploadPortfolio
+          discountMethod={discountMethod}
+          staging={staging}
+          onUploaded={handleUploaded}
+          onUseSample={handleUseSample}
+        />
 
         <div className="discount-method-control">
           <label htmlFor="discount-method">Discount timing assumption</label>
@@ -95,6 +117,10 @@ function App() {
             Assumes the expected loss crystallises at this point within the ECL horizon.
           </span>
         </div>
+      </div>
+
+      <div className="toolbar">
+        <StagingControls staging={staging} onApply={handleStagingChange} />
       </div>
 
       {loading && <div className="status-message">Loading portfolio...</div>}

@@ -1,7 +1,9 @@
 import pytest
 
 from app.ecl_engine import calculate_ecl, classify_stage, discount_factor, lifetime_pd, process_portfolio
-from app.models import DiscountMethod, Loan, Stage
+from app.models import DiscountMethod, Loan, Stage, StagingAssumptions
+
+DEFAULT_STAGING = StagingAssumptions()
 
 
 def make_loan(**overrides) -> Loan:
@@ -22,22 +24,45 @@ def make_loan(**overrides) -> Loan:
 
 def test_classify_stage_1_when_performing():
     loan = make_loan(pd_12m=0.02, pd_origination=0.02, days_past_due=0)
-    assert classify_stage(loan) == Stage.stage_1
+    assert classify_stage(loan, DEFAULT_STAGING) == Stage.stage_1
 
 
 def test_classify_stage_2_when_pd_doubles():
     loan = make_loan(pd_12m=0.05, pd_origination=0.02, days_past_due=0)
-    assert classify_stage(loan) == Stage.stage_2
+    assert classify_stage(loan, DEFAULT_STAGING) == Stage.stage_2
 
 
 def test_classify_stage_2_when_30_dpd():
     loan = make_loan(pd_12m=0.02, pd_origination=0.02, days_past_due=30)
-    assert classify_stage(loan) == Stage.stage_2
+    assert classify_stage(loan, DEFAULT_STAGING) == Stage.stage_2
 
 
 def test_classify_stage_3_when_90_dpd():
     loan = make_loan(pd_12m=0.02, pd_origination=0.02, days_past_due=90)
-    assert classify_stage(loan) == Stage.stage_3
+    assert classify_stage(loan, DEFAULT_STAGING) == Stage.stage_3
+
+
+def test_classify_stage_uses_custom_sicr_multiple():
+    loan = make_loan(pd_12m=0.05, pd_origination=0.02, days_past_due=0)
+    # pd ratio is 2.5x, default 2.0x multiple would flag this as stage 2
+    assert classify_stage(loan, DEFAULT_STAGING) == Stage.stage_2
+
+    staging = StagingAssumptions(sicr_pd_multiple=3.0)
+    assert classify_stage(loan, staging) == Stage.stage_1
+
+
+def test_classify_stage_uses_custom_dpd_thresholds():
+    loan = make_loan(pd_12m=0.02, pd_origination=0.02, days_past_due=45)
+    # default thresholds (30/90) would put this in stage 2
+    assert classify_stage(loan, DEFAULT_STAGING) == Stage.stage_2
+
+    staging = StagingAssumptions(stage_2_dpd_threshold=60, stage_3_dpd_threshold=120)
+    assert classify_stage(loan, staging) == Stage.stage_1
+
+
+def test_staging_assumptions_rejects_stage_3_below_stage_2():
+    with pytest.raises(ValueError):
+        StagingAssumptions(stage_2_dpd_threshold=90, stage_3_dpd_threshold=30)
 
 
 def test_lifetime_pd_matches_12m_pd_at_one_year_term():
@@ -54,7 +79,7 @@ def test_lifetime_pd_compounds_over_longer_term():
 def test_stage_1_ecl_uses_12m_pd_discounted_six_months():
     loan = make_loan(pd_12m=0.02, pd_origination=0.02, days_past_due=0,
                       lgd=0.5, exposure_at_default=10_000.0, eir=0.10)
-    stage = classify_stage(loan)
+    stage = classify_stage(loan, DEFAULT_STAGING)
     pd_lt = lifetime_pd(loan)
     ecl, ecl_undiscounted = calculate_ecl(loan, stage, pd_lt, DiscountMethod.midpoint)
     assert stage == Stage.stage_1
@@ -67,7 +92,7 @@ def test_stage_1_ecl_uses_12m_pd_discounted_six_months():
 def test_stage_2_ecl_uses_lifetime_pd_discounted_to_term_midpoint():
     loan = make_loan(pd_12m=0.05, pd_origination=0.02, days_past_due=0,
                       lgd=0.5, exposure_at_default=10_000.0, remaining_term_months=24, eir=0.10)
-    stage = classify_stage(loan)
+    stage = classify_stage(loan, DEFAULT_STAGING)
     pd_lt = lifetime_pd(loan)
     ecl, ecl_undiscounted = calculate_ecl(loan, stage, pd_lt, DiscountMethod.midpoint)
     assert stage == Stage.stage_2
@@ -80,7 +105,7 @@ def test_stage_2_ecl_uses_lifetime_pd_discounted_to_term_midpoint():
 def test_end_of_horizon_discounts_more_than_midpoint():
     loan = make_loan(pd_12m=0.05, pd_origination=0.02, days_past_due=0,
                       lgd=0.5, exposure_at_default=10_000.0, remaining_term_months=24, eir=0.10)
-    stage = classify_stage(loan)
+    stage = classify_stage(loan, DEFAULT_STAGING)
     pd_lt = lifetime_pd(loan)
     ecl_midpoint, _ = calculate_ecl(loan, stage, pd_lt, DiscountMethod.midpoint)
     ecl_end, ecl_undiscounted = calculate_ecl(loan, stage, pd_lt, DiscountMethod.end_of_horizon)

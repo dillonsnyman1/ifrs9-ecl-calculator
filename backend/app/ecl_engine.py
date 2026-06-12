@@ -4,23 +4,25 @@
 # production model. See the README for the methodology behind the
 # thresholds and formulas below.
 
-from app.models import DiscountMethod, Loan, PortfolioResponse, PortfolioSummary, ProcessedLoan, Stage, StageSummary
+from app.models import (
+    DiscountMethod,
+    Loan,
+    PortfolioResponse,
+    PortfolioSummary,
+    ProcessedLoan,
+    Stage,
+    StageSummary,
+    StagingAssumptions,
+)
 
-# loan moves to stage 2 if current 12m PD is at least double the PD at origination
-SICR_PD_MULTIPLE = 2.0
 
-# IFRS 9 backstop indicators
-STAGE_2_DPD_THRESHOLD = 30
-STAGE_3_DPD_THRESHOLD = 90
-
-
-def classify_stage(loan: Loan) -> Stage:
+def classify_stage(loan: Loan, staging: StagingAssumptions) -> Stage:
     """Work out which IFRS 9 stage a loan falls into."""
-    if loan.days_past_due >= STAGE_3_DPD_THRESHOLD:
+    if loan.days_past_due >= staging.stage_3_dpd_threshold:
         return Stage.stage_3
 
-    sicr = (loan.pd_12m / loan.pd_origination) >= SICR_PD_MULTIPLE
-    if loan.days_past_due >= STAGE_2_DPD_THRESHOLD or sicr:
+    sicr = (loan.pd_12m / loan.pd_origination) >= staging.sicr_pd_multiple
+    if loan.days_past_due >= staging.stage_2_dpd_threshold or sicr:
         return Stage.stage_2
 
     return Stage.stage_1
@@ -69,8 +71,8 @@ def calculate_ecl(loan: Loan, stage: Stage, pd_lt: float, method: DiscountMethod
     return discounted, undiscounted
 
 
-def process_loan(loan: Loan, method: DiscountMethod) -> ProcessedLoan:
-    stage = classify_stage(loan)
+def process_loan(loan: Loan, method: DiscountMethod, staging: StagingAssumptions) -> ProcessedLoan:
+    stage = classify_stage(loan, staging)
     pd_lt = lifetime_pd(loan)
     ecl, ecl_undiscounted = calculate_ecl(loan, stage, pd_lt, method)
     return ProcessedLoan(
@@ -109,7 +111,12 @@ def summarize_portfolio(loans: list[ProcessedLoan]) -> PortfolioSummary:
     )
 
 
-def process_portfolio(loans: list[Loan], method: DiscountMethod = DiscountMethod.midpoint) -> PortfolioResponse:
-    processed = [process_loan(loan, method) for loan in loans]
+def process_portfolio(
+    loans: list[Loan],
+    method: DiscountMethod = DiscountMethod.midpoint,
+    staging: StagingAssumptions | None = None,
+) -> PortfolioResponse:
+    staging = staging or StagingAssumptions()
+    processed = [process_loan(loan, method, staging) for loan in loans]
     summary = summarize_portfolio(processed)
     return PortfolioResponse(loans=processed, summary=summary)

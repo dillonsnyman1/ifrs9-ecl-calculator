@@ -1,6 +1,6 @@
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class Stage(str, Enum):
@@ -14,6 +14,28 @@ class DiscountMethod(str, Enum):
 
     midpoint = "midpoint"
     end_of_horizon = "end_of_horizon"
+
+
+class StagingAssumptions(BaseModel):
+    """The backstops used to decide when a loan moves to stage 2 or 3.
+
+    These are configurable so users can see how sensitive the staging
+    (and therefore the ECL) is to the thresholds chosen.
+    """
+
+    sicr_pd_multiple: float = Field(
+        default=2.0,
+        gt=0,
+        description="loan moves to stage 2 if pd_12m / pd_origination is at least this multiple",
+    )
+    stage_2_dpd_threshold: int = Field(default=30, ge=0, description="days past due backstop for stage 2")
+    stage_3_dpd_threshold: int = Field(default=90, ge=0, description="days past due backstop for stage 3 (default)")
+
+    @model_validator(mode="after")
+    def check_thresholds_ordered(self) -> "StagingAssumptions":
+        if self.stage_3_dpd_threshold < self.stage_2_dpd_threshold:
+            raise ValueError("stage_3_dpd_threshold must be greater than or equal to stage_2_dpd_threshold")
+        return self
 
 
 class Loan(BaseModel):
