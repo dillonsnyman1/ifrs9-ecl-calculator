@@ -71,6 +71,43 @@ app, so the impact of discounting is visible at a glance. Portfolio-level
 results aggregate total exposure, total discounted and undiscounted ECL,
 the ECL coverage ratio, and counts/exposure/ECL broken down by stage.
 
+### Macroeconomic Scenarios
+
+IFRS 9 requires ECL to reflect a probability-weighted average across
+multiple forward-looking macroeconomic scenarios, not just a single
+base-case PD. Scenario weighting is **off by default** - with the toggle
+off, ECL is the original single-PD calculation (100% weight on a single
+unadjusted scenario). Switching it on lets you model three scenarios -
+**base**, **upside** and **downside** - each defined by a probability
+`weight` and a `pd_multiplier` applied to a loan's `pd_12m` (the resulting
+adjusted PD is capped at 1.0 and then rolled forward into an adjusted
+lifetime PD using the same compounding formula as above).
+
+The defaults are:
+
+| Scenario | Weight | PD multiplier |
+|---|---|---|
+| Base | 60% | x1.0 |
+| Upside | 20% | x0.8 |
+| Downside | 20% | x1.5 |
+
+Weights must sum to 100%. For each loan, ECL is calculated once per scenario
+(using that scenario's adjusted 12m/lifetime PD) and then combined into a
+single probability-weighted `ecl` / `ecl_undiscounted` figure. The per-scenario
+figures are also returned (`ecl_scenarios` / `ecl_undiscounted_scenarios` per
+loan, and `by_scenario` at portfolio level), so you can see what ECL would be
+if a single scenario played out with certainty versus the blended figure the
+dashboard highlights.
+
+**Staging basis**: by default (`base_case`), the Stage 1/2/3 classification
+(including the SICR PD-ratio test) uses the loan's own `pd_12m` /
+`pd_origination`, unaffected by the scenario multipliers - DPD backstops are
+always scenario-independent. Switching to `scenario_weighted` instead uses
+the probability-weighted PD across all three scenarios for the SICR ratio
+test, which can move borderline loans from Stage 1 to Stage 2. Either way, a
+single stage is determined per loan and used consistently across all three
+scenarios' ECL calculations.
+
 ---
 
 ## Project Structure
@@ -141,6 +178,21 @@ backstops:
 `stage_3_dpd_threshold` must be greater than or equal to
 `stage_2_dpd_threshold`, otherwise the API returns a 422.
 
+They also accept optional query parameters to configure the macroeconomic
+scenarios used for probability-weighted ECL (see Methodology above):
+
+| Parameter | Default | Description |
+|---|---|---|
+| `scenario_base_weight` | `0.6` | Probability weight of the base scenario |
+| `scenario_base_pd_multiplier` | `1.0` | PD multiplier applied to `pd_12m` under the base scenario |
+| `scenario_upside_weight` | `0.2` | Probability weight of the upside scenario |
+| `scenario_upside_pd_multiplier` | `0.8` | PD multiplier applied to `pd_12m` under the upside scenario |
+| `scenario_downside_weight` | `0.2` | Probability weight of the downside scenario |
+| `scenario_downside_pd_multiplier` | `1.5` | PD multiplier applied to `pd_12m` under the downside scenario |
+| `staging_basis` | `base_case` | `base_case` or `scenario_weighted` - which PD basis is used for the SICR (stage 2) test |
+
+The three scenario weights must sum to 1.0, otherwise the API returns a 422.
+
 ### CSV Format
 
 Custom portfolio CSVs must include the following columns:
@@ -161,7 +213,6 @@ a mix if you give it one.
 
 - Deploy frontend to S3/CloudFront and backend to AWS Lambda + API Gateway
   (Terraform), with a live demo link
-- Macroeconomic scenario weighting (base / upside / downside) for ECL
 - Full cash shortfall schedule discounting: instead of the midpoint /
   end-of-horizon simplifications, build a period-by-period amortisation
   schedule per loan (payment frequency, rate, balance roll-forward) with a

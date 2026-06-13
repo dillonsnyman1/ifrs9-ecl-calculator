@@ -1,4 +1,5 @@
-import type { DiscountMethod, PortfolioResponse, StagingAssumptions } from "../types/portfolio";
+import type { DiscountMethod, PortfolioResponse, ScenarioAssumptions, StagingAssumptions } from "../types/portfolio";
+import { SINGLE_SCENARIO } from "../types/portfolio";
 
 const API_BASE = "http://localhost:8000";
 
@@ -10,11 +11,29 @@ function stagingParams(staging: StagingAssumptions): string {
   }).toString();
 }
 
+function scenarioParams(scenarios: ScenarioAssumptions): string {
+  // when scenario weighting is switched off, fall back to a single
+  // unweighted scenario so ECL matches the original single-PD calculation
+  const effective = scenarios.enabled ? scenarios : SINGLE_SCENARIO;
+  return new URLSearchParams({
+    scenario_base_weight: String(effective.base.weight),
+    scenario_base_pd_multiplier: String(effective.base.pd_multiplier),
+    scenario_upside_weight: String(effective.upside.weight),
+    scenario_upside_pd_multiplier: String(effective.upside.pd_multiplier),
+    scenario_downside_weight: String(effective.downside.weight),
+    scenario_downside_pd_multiplier: String(effective.downside.pd_multiplier),
+    staging_basis: effective.staging_basis,
+  }).toString();
+}
+
 export async function fetchSamplePortfolio(
   discountMethod: DiscountMethod,
   staging: StagingAssumptions,
+  scenarios: ScenarioAssumptions,
 ): Promise<PortfolioResponse> {
-  const res = await fetch(`${API_BASE}/api/portfolio?discount_method=${discountMethod}&${stagingParams(staging)}`);
+  const res = await fetch(
+    `${API_BASE}/api/portfolio?discount_method=${discountMethod}&${stagingParams(staging)}&${scenarioParams(scenarios)}`,
+  );
   if (!res.ok) {
     throw new Error(`Failed to load portfolio (${res.status})`);
   }
@@ -25,12 +44,13 @@ export async function uploadPortfolio(
   file: File,
   discountMethod: DiscountMethod,
   staging: StagingAssumptions,
+  scenarios: ScenarioAssumptions,
 ): Promise<PortfolioResponse> {
   const formData = new FormData();
   formData.append("file", file);
 
   const res = await fetch(
-    `${API_BASE}/api/portfolio/upload?discount_method=${discountMethod}&${stagingParams(staging)}`,
+    `${API_BASE}/api/portfolio/upload?discount_method=${discountMethod}&${stagingParams(staging)}&${scenarioParams(scenarios)}`,
     {
       method: "POST",
       body: formData,

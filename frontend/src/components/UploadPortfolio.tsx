@@ -1,16 +1,17 @@
 import { useRef, useState } from "react";
 
 import { sampleCsvUrl, uploadPortfolio } from "../api/client";
-import type { DiscountMethod, PortfolioResponse, StagingAssumptions } from "../types/portfolio";
+import type { DiscountMethod, PortfolioResponse, ScenarioAssumptions, StagingAssumptions } from "../types/portfolio";
 
 interface Props {
   discountMethod: DiscountMethod;
   staging: StagingAssumptions;
+  scenarios: ScenarioAssumptions;
   onUploaded: (data: PortfolioResponse, file: File) => void;
   onUseSample: () => void;
 }
 
-export function UploadPortfolio({ discountMethod, staging, onUploaded, onUseSample }: Props) {
+export function UploadPortfolio({ discountMethod, staging, scenarios, onUploaded, onUseSample }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -22,7 +23,7 @@ export function UploadPortfolio({ discountMethod, staging, onUploaded, onUseSamp
     setLoading(true);
     setError(null);
     try {
-      const data = await uploadPortfolio(file, discountMethod, staging);
+      const data = await uploadPortfolio(file, discountMethod, staging, scenarios);
       onUploaded(data, file);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to upload portfolio.");

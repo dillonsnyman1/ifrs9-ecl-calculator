@@ -121,10 +121,104 @@
   width: 100px;
 }
 
+.staging-basis-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.staging-basis-option {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text-h);
+  background: var(--card-bg);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.staging-basis-option:not(:last-child) {
+  border-right: 1px solid var(--border);
+}
+
+.staging-basis-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.staging-basis-option.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.staging-basis-option:hover:not(.active) {
+  background: color-mix(in srgb, var(--accent) 12%, var(--card-bg));
+}
+
 .staging-error {
   color: var(--stage3);
   font-size: 13px;
   width: 100%;
+}
+
+.scenario-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+}
+
+.scenario-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.scenario-controls-body {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.scenario-controls-body.disabled {
+  opacity: 0.45;
+}
+
+.scenario-controls-body.disabled .scenario-field-group,
+.scenario-controls-body.disabled .staging-basis-toggle {
+  pointer-events: none;
+}
+
+.scenario-field-group {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.scenario-field-group-label {
+  align-self: center;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-h);
+  white-space: nowrap;
 }
 
 .summary-cards {

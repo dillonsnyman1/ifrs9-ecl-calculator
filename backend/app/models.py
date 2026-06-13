@@ -16,6 +16,27 @@ class DiscountMethod(str, Enum):
     end_of_horizon = "end_of_horizon"
 
 
+class ScenarioName(str, Enum):
+    """Macroeconomic scenarios used to probability-weight ECL."""
+
+    base = "base"
+    upside = "upside"
+    downside = "downside"
+
+
+class StagingBasis(str, Enum):
+    """Which PD is used for the SICR (stage 2) test.
+
+    - base_case: use the loan's own pd_12m / pd_origination, as if the base
+      scenario were certain (current behaviour).
+    - scenario_weighted: use the probability-weighted PD across all
+      scenarios for the SICR test instead.
+    """
+
+    base_case = "base_case"
+    scenario_weighted = "scenario_weighted"
+
+
 class StagingAssumptions(BaseModel):
     """The backstops used to decide when a loan moves to stage 2 or 3.
 
@@ -36,6 +57,38 @@ class StagingAssumptions(BaseModel):
         if self.stage_3_dpd_threshold < self.stage_2_dpd_threshold:
             raise ValueError("stage_3_dpd_threshold must be greater than or equal to stage_2_dpd_threshold")
         return self
+
+
+class ScenarioDefinition(BaseModel):
+    """A single macroeconomic scenario: its probability weight and the
+    multiplier applied to pd_12m to reflect that scenario's conditions."""
+
+    weight: float = Field(ge=0, le=1)
+    pd_multiplier: float = Field(gt=0)
+
+
+class ScenarioAssumptions(BaseModel):
+    """Macroeconomic scenarios used to probability-weight ECL, and which PD
+    basis is used for the SICR (stage 2) test."""
+
+    base: ScenarioDefinition = Field(default_factory=lambda: ScenarioDefinition(weight=0.6, pd_multiplier=1.0))
+    upside: ScenarioDefinition = Field(default_factory=lambda: ScenarioDefinition(weight=0.2, pd_multiplier=0.8))
+    downside: ScenarioDefinition = Field(default_factory=lambda: ScenarioDefinition(weight=0.2, pd_multiplier=1.5))
+    staging_basis: StagingBasis = StagingBasis.base_case
+
+    @model_validator(mode="after")
+    def check_weights_sum_to_one(self) -> "ScenarioAssumptions":
+        total_weight = self.base.weight + self.upside.weight + self.downside.weight
+        if abs(total_weight - 1.0) > 1e-6:
+            raise ValueError("scenario weights must sum to 1.0")
+        return self
+
+    def items(self) -> list[tuple[ScenarioName, ScenarioDefinition]]:
+        return [
+            (ScenarioName.base, self.base),
+            (ScenarioName.upside, self.upside),
+            (ScenarioName.downside, self.downside),
+        ]
 
 
 class Loan(BaseModel):
@@ -59,6 +112,8 @@ class ProcessedLoan(Loan):
     pd_lifetime: float
     ecl: float
     ecl_undiscounted: float
+    ecl_scenarios: dict[ScenarioName, float]
+    ecl_undiscounted_scenarios: dict[ScenarioName, float]
 
 
 class StageSummary(BaseModel):
@@ -68,6 +123,12 @@ class StageSummary(BaseModel):
     ecl_undiscounted: float
 
 
+class ScenarioSummary(BaseModel):
+    ecl: float
+    ecl_undiscounted: float
+    coverage_ratio: float
+
+
 class PortfolioSummary(BaseModel):
     loan_count: int
     total_exposure: float
@@ -75,6 +136,8 @@ class PortfolioSummary(BaseModel):
     total_ecl_undiscounted: float
     coverage_ratio: float
     by_stage: dict[Stage, StageSummary]
+    by_scenario: dict[ScenarioName, ScenarioSummary]
+    staging_basis: StagingBasis
 
 
 class PortfolioResponse(BaseModel):
