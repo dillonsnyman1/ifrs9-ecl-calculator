@@ -100,4 +100,5 @@ jobs:
             --paths "/*"
 
       - name: Summary
-        run: echo "Deployed dashboard: ${{ steps.tf-outputs.outputs.cloudfront_url }}" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          echo "Deployed dashboard: ${{ steps.tf-outputs.outputs.cloudfront_url }}" >> "$GITHUB_STEP_SUMMARY"
