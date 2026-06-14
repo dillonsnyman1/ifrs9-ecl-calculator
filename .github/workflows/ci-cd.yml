@@ -58,11 +58,9 @@ jobs:
   deploy:
     name: Deploy
     needs: [backend-test, frontend-build]
-    # Manual trigger only for now (see infra/README.md) - change to also
-    # match `github.event_name == 'push' && github.ref ==
-    # 'refs/heads/main'` once the one-time AWS setup is done and you want
-    # deploys to run automatically on every merge to main.
-    if: github.event_name == 'workflow_dispatch'
+    # Runs automatically on every push to main (once backend-test and
+    # frontend-build pass), or on demand via the Actions tab.
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

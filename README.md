@@ -220,9 +220,8 @@ defined in Terraform under [`infra/`](infra/), and a GitHub Actions
 workflow ([`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml)) runs
 the backend tests and frontend build on every push/PR, then - if those pass -
 builds the backend image, applies the Terraform config, and publishes the
-frontend. The deploy job is manually triggered until the one-time setup in
-[`infra/README.md`](infra/README.md) is done, after which it can be wired
-up to run automatically on every push to `main`.
+frontend to S3/CloudFront. The deploy job runs automatically on every push
+to `main`, or on demand via the Actions tab.
 
 > **Live demo**: not yet deployed - the CI/deploy pipeline is in place
 > pending the initial `terraform apply` (see [`infra/README.md`](infra/README.md)

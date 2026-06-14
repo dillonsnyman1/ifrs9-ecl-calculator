@@ -62,17 +62,14 @@ and a DynamoDB table.
    region other than the default `eu-west-2` (must match
    `infra/bootstrap`'s `aws_region`).
 
-3. **Run the "CI/CD" workflow manually** (Actions tab → CI/CD → Run
-   workflow). After the backend tests and frontend build jobs pass, the
-   deploy job builds the backend image, runs `terraform init`/`apply`
+3. **Run the "CI/CD" workflow** (Actions tab → CI/CD → Run workflow, or just
+   push to `main`). After the backend tests and frontend build jobs pass,
+   the deploy job builds the backend image, runs `terraform init`/`apply`
    against the bootstrap-created backend, builds the frontend against the
    new API URL, and syncs it to S3.
 
-   The deploy job only runs on a manual (`workflow_dispatch`) run so that
-   pushes to `main` don't attempt a deploy before this setup is done. Once
-   steps 1-2 are complete, you can change the deploy job's `if:` condition
-   in `.github/workflows/ci-cd.yml` to also run on `push` to `main`, so it
-   deploys automatically on every merge.
+   The deploy job runs automatically on every push to `main` (once steps 1-2
+   are complete), or on demand via a manual (`workflow_dispatch`) run.
 
 4. The CloudFront URL is printed in the workflow's job summary
    (`terraform output cloudfront_domain_name`), and is also available any
