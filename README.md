@@ -1,5 +1,8 @@
 # IFRS 9 ECL Calculator
 
+[![CI](https://github.com/dillonsnyman1/ifrs9-ecl-calculator/actions/workflows/ci.yml/badge.svg)](https://github.com/dillonsnyman1/ifrs9-ecl-calculator/actions/workflows/ci.yml)
+[![Deploy](https://github.com/dillonsnyman1/ifrs9-ecl-calculator/actions/workflows/deploy.yml/badge.svg)](https://github.com/dillonsnyman1/ifrs9-ecl-calculator/actions/workflows/deploy.yml)
+
 A full-stack demo that classifies a loan portfolio into IFRS 9 Stage 1 / 2 / 3
 and calculates Expected Credit Loss (ECL) at loan and portfolio level.
 
@@ -209,10 +212,24 @@ a mix if you give it one.
 
 ---
 
+## Deployment
+
+The app deploys to AWS with no custom domain - CloudFront serves the
+frontend, and the FastAPI backend runs on Lambda (as a container image,
+for pandas compatibility) behind an API Gateway HTTP API. Everything is
+defined in Terraform under [`infra/`](infra/), and a GitHub Actions
+workflow ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml))
+builds the backend image, applies the Terraform config, and publishes the
+frontend. It's manually triggered until the one-time setup in
+[`infra/README.md`](infra/README.md) is done, after which it can be wired
+up to run on every push to `main`.
+
+> **Live demo**: not yet deployed - the CI/deploy pipeline is in place
+> pending the initial `terraform apply` (see [`infra/README.md`](infra/README.md)
+> for the one-time setup).
+
 ## Roadmap
 
-- Deploy frontend to S3/CloudFront and backend to AWS Lambda + API Gateway
-  (Terraform), with a live demo link
 - Full cash shortfall schedule discounting: instead of the midpoint /
   end-of-horizon simplifications, build a period-by-period amortisation
   schedule per loan (payment frequency, rate, balance roll-forward) with a

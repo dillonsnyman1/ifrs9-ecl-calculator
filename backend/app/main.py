@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -21,9 +22,13 @@ SAMPLE_DATA_PATH = Path(__file__).parent / "sample_data" / "sample_portfolio.csv
 
 app = FastAPI(title="IFRS 9 ECL Calculator")
 
+# CORS_ORIGINS is a comma-separated list of allowed origins, e.g. the
+# CloudFront domain in production. Defaults to the local Vite dev server.
+CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -155,3 +160,10 @@ def download_sample_csv() -> FileResponse:
         media_type="text/csv",
         filename="sample_portfolio.csv",
     )
+
+
+# AWS Lambda entrypoint (via API Gateway HTTP API proxy integration). Unused
+# when running locally with uvicorn.
+from mangum import Mangum  # noqa: E402
+
+handler = Mangum(app)

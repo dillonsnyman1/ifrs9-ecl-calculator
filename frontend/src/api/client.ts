@@ -1,7 +1,10 @@
 import type { DiscountMethod, PortfolioResponse, ScenarioAssumptions, StagingAssumptions } from "../types/portfolio";
 import { SINGLE_SCENARIO } from "../types/portfolio";
 
-const API_BASE = "http://localhost:8000";
+// In production this is set at build time to the deployed API Gateway URL
+// (see .github/workflows/deploy.yml); locally it falls back to the FastAPI
+// dev server.
+const API_BASE: string = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
 function stagingParams(staging: StagingAssumptions): string {
   return new URLSearchParams({
