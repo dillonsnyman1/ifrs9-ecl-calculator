@@ -5,13 +5,13 @@ URLs (no custom domain/Route 53/ACM):
 
 ```
                 ┌──────────────┐        ┌──────────────────────┐
-   users ─────▶ │  CloudFront  │ ─────▶ │  S3 (frontend bucket)  │
+   users ─────▶ │  CloudFront  │ ─────▶ │  S3 (frontend bucket)│
                 └──────────────┘        └──────────────────────┘
                        (OAC: bucket has no public access)
 
                 ┌──────────────┐        ┌──────────────────────┐
-   browser ───▶ │ API Gateway  │ ─────▶ │  Lambda (container)   │ ◀── image
-                │  (HTTP API)  │        │  FastAPI via Mangum    │     from ECR
+   browser ───▶ │ API Gateway  │ ─────▶ │  Lambda (container)  │ ◀── image
+                │  (HTTP API)  │        │  FastAPI via Mangum  │     from ECR
                 └──────────────┘        └──────────────────────┘
 ```
 
