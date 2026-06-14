@@ -19,6 +19,7 @@ dist/
 *.tfstate
 *.tfstate.*
 *.tfplan
+tfplan
 crash.log
 
 # OS
