@@ -223,9 +223,7 @@ builds the backend image, applies the Terraform config, and publishes the
 frontend to S3/CloudFront. The deploy job runs automatically on every push
 to `main`, or on demand via the Actions tab.
 
-> **Live demo**: not yet deployed - the CI/deploy pipeline is in place
-> pending the initial `terraform apply` (see [`infra/README.md`](infra/README.md)
-> for the one-time setup).
+> **Live demo**: https://https://drmymq1mrcj43.cloudfront.net
 
 ## Roadmap
 
