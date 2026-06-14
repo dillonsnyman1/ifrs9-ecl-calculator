@@ -65,6 +65,14 @@ resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.api.id
   name        = "$default"
   auto_deploy = true
+
+  # Cap worst-case Lambda invocations (and therefore cost) on this public
+  # demo - legitimate use is nowhere near these limits, but it bounds the
+  # damage if the API gets hammered or scraped.
+  default_route_settings {
+    throttling_rate_limit  = 5
+    throttling_burst_limit = 10
+  }
 }
 
 resource "aws_apigatewayv2_integration" "lambda" {

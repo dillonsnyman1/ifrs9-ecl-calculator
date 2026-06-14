@@ -111,6 +111,11 @@ jobs:
           context: backend
           platforms: linux/arm64
           push: true
+          # Lambda doesn't support the OCI image index with attestation
+          # manifests that Buildx produces by default - disable provenance
+          # and SBOM so it pushes a plain image manifest instead.
+          provenance: false
+          sbom: false
           tags: |
             ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}
             ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:latest
