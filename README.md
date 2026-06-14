@@ -223,9 +223,14 @@ builds the backend image, applies the Terraform config, and publishes the
 frontend to S3/CloudFront. The deploy job runs automatically on every push
 to `main`, or on demand via the Actions tab.
 
-> **Live demo**: not yet deployed - the CI/deploy pipeline is in place
-> pending the initial `terraform apply` (see [`infra/README.md`](infra/README.md)
-> for the one-time setup).
+> **Live demo**: [drmymq1mrcj43.cloudfront.net](https://drmymq1mrcj43.cloudfront.net) - try uploading your own
+> loan portfolio CSV or adjusting the staging/ECL assumptions.
+>
+> The backend is fully stateless - there's no database or session storage of
+> any kind. Each request (including CSV uploads) is read, processed and
+> returned in one go; your data is never written to disk or stored
+> anywhere, so it's safe for multiple people to use the demo at the same
+> time without their data overlapping.
 
 ## Roadmap
 
