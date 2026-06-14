@@ -1,11 +1,13 @@
-name: Deploy
+name: CI/CD
 
-# Builds and pushes the backend image, applies infra/ with Terraform, then
-# builds and publishes the frontend. Requires the one-time
-# infra/bootstrap apply and AWS_DEPLOY_ROLE_ARN/TF_STATE_BUCKET/TF_LOCK_TABLE
-# secrets to be configured first - see infra/README.md. Manual trigger only
-# until then; switch to `push: branches: [main]` once those are in place.
+# Runs backend tests and frontend build on every push/PR. The deploy job
+# only runs for pushes to main (or a manual dispatch on main) and only if
+# both of those jobs succeed - see infra/README.md for the one-time AWS
+# setup required before deploy can run.
 on:
+  pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -17,8 +19,50 @@ env:
   PROJECT_NAME: ifrs9-ecl-calculator
 
 jobs:
+  backend-test:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - run: pip install -r requirements.txt
+
+      - run: pytest
+
+  frontend-build:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run build
+
   deploy:
     name: Deploy
+    needs: [backend-test, frontend-build]
+    # Manual trigger only for now (see infra/README.md) - change to also
+    # match `github.event_name == 'push' && github.ref ==
+    # 'refs/heads/main'` once the one-time AWS setup is done and you want
+    # deploys to run automatically on every merge to main.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

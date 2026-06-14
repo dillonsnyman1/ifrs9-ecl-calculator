@@ -29,8 +29,8 @@ URLs (no custom domain/Route 53/ACM):
   the Terraform remote state backend (S3 + DynamoDB) and the IAM role the
   GitHub Actions deploy workflow assumes via OIDC.
 - `main.tf`, `variables.tf`, `frontend.tf`, `backend.tf`, `outputs.tf` - the
-  application infrastructure, applied by `.github/workflows/deploy.yml` on
-  every push to `main`.
+  application infrastructure, applied by the `deploy` job in
+  `.github/workflows/ci-cd.yml`.
 
 ## One-time setup
 
@@ -62,16 +62,17 @@ and a DynamoDB table.
    region other than the default `eu-west-2` (must match
    `infra/bootstrap`'s `aws_region`).
 
-3. **Run the "Deploy" workflow manually** (Actions tab → Deploy → Run
-   workflow). It builds the backend image, runs `terraform init`/`apply`
+3. **Run the "CI/CD" workflow manually** (Actions tab → CI/CD → Run
+   workflow). After the backend tests and frontend build jobs pass, the
+   deploy job builds the backend image, runs `terraform init`/`apply`
    against the bootstrap-created backend, builds the frontend against the
    new API URL, and syncs it to S3.
 
-   The workflow is manual-trigger only (`workflow_dispatch`) so that pushes
-   to `main` don't attempt a deploy before this setup is done. Once steps
-   1-2 are complete, you can switch `.github/workflows/deploy.yml`'s `on:`
-   trigger to `push: branches: [main]` to deploy automatically on every
-   merge.
+   The deploy job only runs on a manual (`workflow_dispatch`) run so that
+   pushes to `main` don't attempt a deploy before this setup is done. Once
+   steps 1-2 are complete, you can change the deploy job's `if:` condition
+   in `.github/workflows/ci-cd.yml` to also run on `push` to `main`, so it
+   deploys automatically on every merge.
 
 4. The CloudFront URL is printed in the workflow's job summary
    (`terraform output cloudfront_domain_name`), and is also available any

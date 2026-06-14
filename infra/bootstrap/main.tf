@@ -150,6 +150,7 @@ data "aws_iam_policy_document" "github_actions_deploy" {
       "s3:DeleteObject",
       "s3:PutBucketPolicy",
       "s3:GetBucketPolicy",
+      "s3:GetBucketAcl",
       "s3:PutBucketPublicAccessBlock",
       "s3:GetBucketPublicAccessBlock",
       "s3:CreateBucket",
@@ -235,8 +236,19 @@ data "aws_iam_policy_document" "github_actions_deploy" {
   statement {
     sid       = "LambdaLogs"
     effect    = "Allow"
-    actions   = ["logs:CreateLogGroup", "logs:DeleteLogGroup", "logs:PutRetentionPolicy", "logs:DescribeLogGroups", "logs:TagResource"]
+    actions   = ["logs:CreateLogGroup", "logs:DeleteLogGroup", "logs:PutRetentionPolicy", "logs:TagResource"]
     resources = ["arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${var.project_name}-*"]
+  }
+
+  statement {
+    # DescribeLogGroups is a list operation that CloudWatch Logs evaluates
+    # against "log-group:*" regardless of the policy's resource pattern, so
+    # it can't be scoped to a specific log group name like the statement
+    # above.
+    sid       = "LambdaLogsDescribe"
+    effect    = "Allow"
+    actions   = ["logs:DescribeLogGroups"]
+    resources = ["arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:*"]
   }
 
   statement {
