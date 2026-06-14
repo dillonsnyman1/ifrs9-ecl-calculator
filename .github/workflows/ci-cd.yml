@@ -62,6 +62,9 @@ jobs:
     # frontend-build pass), or on demand via the Actions tab.
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -156,3 +159,32 @@ jobs:
       - name: Summary
         run: |
           echo "Deployed dashboard: ${{ steps.tf-outputs.outputs.cloudfront_url }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Update README with live demo URL
+        env:
+          CLOUDFRONT_URL: ${{ steps.tf-outputs.outputs.cloudfront_url }}
+        run: |
+          python3 - <<'EOF'
+          import os, re
+
+          url = os.environ["CLOUDFRONT_URL"]
+          with open("README.md") as f:
+              content = f.read()
+
+          new_block = f"> **Live demo**: https://{url}"
+          content = re.sub(r"> \*\*Live demo\*\*:.*?(?=\n\n)", new_block, content, flags=re.S)
+
+          with open("README.md", "w") as f:
+              f.write(content)
+          EOF
+
+      - name: Commit README update
+        run: |
+          if ! git diff --quiet README.md; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add README.md
+            git commit -m "Update live demo URL in README"
+            git pull --rebase origin main
+            git push
+          fi

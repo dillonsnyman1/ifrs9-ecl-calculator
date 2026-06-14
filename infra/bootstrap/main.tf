@@ -153,6 +153,7 @@ data "aws_iam_policy_document" "github_actions_deploy" {
       "s3:GetBucketAcl",
       "s3:GetBucketCORS",
       "s3:GetBucketWebsite",
+      "s3:GetBucketVersioning",
       "s3:PutBucketPublicAccessBlock",
       "s3:GetBucketPublicAccessBlock",
       "s3:CreateBucket",
