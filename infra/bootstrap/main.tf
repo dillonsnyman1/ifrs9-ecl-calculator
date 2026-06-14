@@ -274,6 +274,7 @@ data "aws_iam_policy_document" "github_actions_deploy" {
       "cloudfront:UpdateDistribution",
       "cloudfront:DeleteDistribution",
       "cloudfront:TagResource",
+      "cloudfront:ListTagsForResource",
       "cloudfront:CreateOriginAccessControl",
       "cloudfront:GetOriginAccessControl",
       "cloudfront:UpdateOriginAccessControl",
