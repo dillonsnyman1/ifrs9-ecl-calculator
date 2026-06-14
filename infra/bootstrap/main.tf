@@ -220,6 +220,7 @@ data "aws_iam_policy_document" "github_actions_deploy" {
       "lambda:GetPolicy",
       "lambda:TagResource",
       "lambda:ListTags",
+      "lambda:ListVersionsByFunction",
     ]
     resources = ["arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.project_name}-*"]
   }
